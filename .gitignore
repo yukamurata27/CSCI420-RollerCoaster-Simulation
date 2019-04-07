@@ -35,8 +35,9 @@
 # Compressed files
 *.zip
 
-# Personal README file
+# Files
 README.txt
+.gitignore
 
 # Folders
 screenshots/
