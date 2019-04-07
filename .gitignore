@@ -35,7 +35,7 @@
 *.zip
 
 # Personal README file
-*README.txt
+README.txt
 
 # Folders
 screenshots/
