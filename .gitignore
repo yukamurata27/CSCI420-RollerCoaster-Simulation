@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Compressed files
+*.zip
+
+# Personal README file
+*README.txt
