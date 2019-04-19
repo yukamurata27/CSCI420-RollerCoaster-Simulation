@@ -19,5 +19,5 @@ make
 ```
 ##### If you wish to change the track file, you may edit the track.txt file. Sample tracks can be found in the splines folder.
 #### 4. Enjoy!
-#### 5. Important note
-##### Please do not directly use the code for your course work or work in general.
+#### 5. Copyright
+##### Please do not directly use the code for your course work or work in general without permission.
