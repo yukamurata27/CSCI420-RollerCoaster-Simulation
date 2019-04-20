@@ -31,4 +31,3 @@ void main()
   // compute the final color
   c = ka * La + d * kd * Ld + pow(s, alpha) * ks * Ls;
 }
-
