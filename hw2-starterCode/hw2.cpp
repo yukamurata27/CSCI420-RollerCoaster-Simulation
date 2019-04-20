@@ -2,7 +2,6 @@
     CSCI 420 Computer Graphics, USC
     Assignment 2: Roller Coaster
     C++ starter code
-
     Student username: ymurata
 */
 
@@ -1107,5 +1106,4 @@ int main(int argc, char *argv[])
     // sink forever into the glut loop
     glutMainLoop();
 }
-
 
