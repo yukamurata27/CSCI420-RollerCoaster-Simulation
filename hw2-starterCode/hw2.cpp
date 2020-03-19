@@ -35,8 +35,7 @@
 
 using namespace std;
 
-// represents one control point along the spline
-// and also a vector
+// Represents a control point & vector
 struct Point
 {
     double x, y, z;
@@ -83,17 +82,13 @@ struct Point
     }
 };
 
-// spline struct 
-// contains how many control points the spline has, and an array of control points 
 struct Spline 
 {
     int numControlPoints;
     Point * points;
 };
 
-// the spline array 
 Spline * splines;
-// total number of splines 
 int numSplines;
 
 int mousePos[2]; // x,y coordinate of the mouse position
@@ -271,54 +266,7 @@ int initTexture(const char * imageFilename, GLuint textureHandle)
     return 0;
 }
 
-/*
- * matrix calculation for spline positions and tangent at u
- * p(u) = [u^3 u^2 u 1] M C
- * t(u) = [3u^2 2u 1 0] M C
-*/
-Point matCalc(int mode, float u, float s, Point p1, Point p2, Point p3, Point p4)
-{
-    Point result;
-    float temp[12];
-    float basis[16] = { -s,       2.0f - s, s - 2.0f,        s,
-                        2.0f * s, s - 3.0f, 3.0f - 2.0f * s, -s,
-                        -s,       0.0f,     s,               0.0f,
-                        0.0f,     1.0f,     0.0f,            0.0f };
-
-    float vec4U[4];
-    if (mode == 1) // Get a point with Catmull-Rom [u^3 u^2 u 1]
-    {
-		vec4U[0] = u * u * u; vec4U[1] = u * u; vec4U[2] = u; vec4U[3] = 1.0f;
-    }
-    else if (mode == 2) // Get a tangent [3u^2 2u 1 0]
-    {
-		vec4U[0] = 3 * u * u; vec4U[1] = 2 * u; vec4U[2] = 1.0f; vec4U[3] = 0.0f;
-    }
-
-    temp[0] = basis[0] * p1.x + basis[1] * p2.x + basis[2] * p3.x + basis[3] * p4.x;
-    temp[1] = basis[0] * p1.y + basis[1] * p2.y + basis[2] * p3.y + basis[3] * p4.y;
-    temp[2] = basis[0] * p1.z + basis[1] * p2.z + basis[2] * p3.z + basis[3] * p4.z;
-
-    temp[3] = basis[4] * p1.x + basis[5] * p2.x + basis[6] * p3.x + basis[7] * p4.x;
-    temp[4] = basis[4] * p1.y + basis[5] * p2.y + basis[6] * p3.y + basis[7] * p4.y;
-    temp[5] = basis[4] * p1.z + basis[5] * p2.z + basis[6] * p3.z + basis[7] * p4.z;
-
-    temp[6] = basis[8] * p1.x + basis[9] * p2.x + basis[10] * p3.x + basis[11] * p4.x;
-    temp[7] = basis[8] * p1.y + basis[9] * p2.y + basis[10] * p3.y + basis[11] * p4.y;
-    temp[8] = basis[8] * p1.z + basis[9] * p2.z + basis[10] * p3.z + basis[11] * p4.z;
-
-    temp[9] = basis[12] * p1.x + basis[13] * p2.x + basis[14] * p3.x + basis[15] * p4.x;
-    temp[10] = basis[12] * p1.y + basis[13] * p2.y + basis[14] * p3.y + basis[15] * p4.y;
-    temp[11] = basis[12] * p1.z + basis[13] * p2.z + basis[14] * p3.z + basis[15] * p4.z;
-
-    result.x = vec4U[0] * temp[0] + vec4U[1] * temp[3] + vec4U[2] * temp[6] + vec4U[3] * temp[9];
-    result.y = vec4U[0] * temp[1] + vec4U[1] * temp[4] + vec4U[2] * temp[7] + vec4U[3] * temp[10];
-    result.z = vec4U[0] * temp[2] + vec4U[1] * temp[5] + vec4U[2] * temp[8] + vec4U[3] * temp[11];
-
-    return result;
-}
-
-// write a screenshot to the specified filename
+// Write a screenshot to the specified filename
 void saveScreenshot(const char * filename)
 {
     unsigned char * screenshotData = new unsigned char[windowWidth * windowHeight * 3];
@@ -348,7 +296,7 @@ void setTextureUnit(GLint unit)
  */
 void setView()
 {
-    //openGLMatrix.LookAt(0, 0, -10, 0, 0, 0, 0, 1, 0); //milestone hw2
+    //openGLMatrix.LookAt(0, 0, 100, 0, 0, 0, 0, 1, 0); // Fixed camera
     openGLMatrix.LookAt(eyePositions.at(trackIdx).x, eyePositions.at(trackIdx).y, eyePositions.at(trackIdx).z,
                         fPoints.at(trackIdx).x, fPoints.at(trackIdx).y, fPoints.at(trackIdx).z,
                         upVectors.at(trackIdx).x, upVectors.at(trackIdx).y, upVectors.at(trackIdx).z);
@@ -364,16 +312,15 @@ void setTransform()
     openGLMatrix.Rotate(landRotate[0], 1.0, 0.0, 0.0);
     openGLMatrix.Rotate(landRotate[1], 0.0, 1.0, 0.0);
     openGLMatrix.Rotate(landRotate[2], 0.0, 0.0, 1.0);
-    openGLMatrix.Scale(landScale[0], landScale[1], landScale[2]); // scale the onject
+    openGLMatrix.Scale(landScale[0], landScale[1], landScale[2]);
 }
 
 /*
- * Set model-view and projection matrix
+ * Set model-view and projection matrix for texture shader
  */
 void setModelViewProjectionMatrix()
 {
-    // ModelView Matrix
-    // prepare the modelview matrix
+    // ModelView Matrix //////////////////////////////////////
     openGLMatrix.SetMatrixMode(OpenGLMatrix::ModelView);
     openGLMatrix.LoadIdentity();
 
@@ -382,28 +329,26 @@ void setModelViewProjectionMatrix()
 
     float m[16]; // column-major
     openGLMatrix.GetMatrix(m);
-    // ipload m to shader
     glUniformMatrix4fv(tex_h_modelViewMatrix, 1, GL_FALSE, m);
 
-    // Projection Matrix
+    // Projection Matrix /////////////////////////////////////
     openGLMatrix.SetMatrixMode(OpenGLMatrix::Projection);
     float p[16]; // column-major
     openGLMatrix.GetMatrix(p);
-    // upload p to shader
     glUniformMatrix4fv(tex_h_projectionMatrix, 1, GL_FALSE, p);
 }
 
-float view[16]; // container of view matrix
-
 /*
- * Calculate view light direction
+ * Compute light direction in view space
+ * viewLightDirection = (view * float4(lightDirection, 0.0)).xyz
+ *
  * Note: lightDirection is a column major
  */
-Point getView(Point lightDirection)
+Point getViewLightDirection(Point lightDirection, float *view)
 {
     Point result;
-    result.x = view[0] * lightDirection.x + view[4] * lightDirection.y + view[8] * lightDirection.z;
-    result.y = view[1] * lightDirection.x + view[5] * lightDirection.y + view[9] * lightDirection.z;
+    result.x = view[0] * lightDirection.x + view[4] * lightDirection.y + view[8]  * lightDirection.z;
+    result.y = view[1] * lightDirection.x + view[5] * lightDirection.y + view[9]  * lightDirection.z;
     result.z = view[2] * lightDirection.x + view[6] * lightDirection.y + view[10] * lightDirection.z;
     return result;
 }
@@ -413,25 +358,21 @@ Point getView(Point lightDirection)
  */
 void setPhongShading()
 {
-    // Set model-view matrix
+    // Get view matrix
+    float view[16];
     openGLMatrix.SetMatrixMode(OpenGLMatrix::ModelView);
     openGLMatrix.LoadIdentity();
     setView();
+    openGLMatrix.GetMatrix(view);
 
-    //float view[16];
-    openGLMatrix.GetMatrix(view); // read the view matrix
-
-    Point lightDirection = Point(0, 1, 0); // the "sun" at noon (this is a vector)
+    // Upload light direction in view space
+    Point lightDirection = Point(0, 1, 0); // the "sun" at noon (vector)
     GLint h_viewLightDirection = glGetUniformLocation(program, "viewLightDirection");
-    Point lD = getView(lightDirection);
-    // light direction in the view space
+    Point lD = getViewLightDirection(lightDirection, view);
     float viewLightDirection[3] = { static_cast<float>(lD.x), static_cast<float>(lD.y), static_cast<float>(lD.z) };
-    //viewLightDirection = (view * float4(lightDirection, 0.0)).xyz; // <---------------------------------------
-    // upload viewLightDirection to the GPU
     glUniform3fv(h_viewLightDirection, 1, viewLightDirection);
 
-    /////////////////////////////////////////////////////////////////////////////////////////
-
+    // Set lights and coefficients
     float intensity = 0.7f;
     float materialCoeff = 0.9f;
 
@@ -462,27 +403,24 @@ void setPhongShading()
     GLint h_alpha = glGetUniformLocation(program, "alpha");
     glUniform1f(h_alpha, 1.0f);
 
-    /////////////////////////////////////////////////////////////////////////////////////////
-
-    // Transformation
+    // Model view matrix
     setTransform();
-
     float m[16]; // column-major
     openGLMatrix.GetMatrix(m);
     glUniformMatrix4fv(h_modelViewMatrix, 1, GL_FALSE, m);
 
-    // Projection Matrix
+    // Projection matrix
     openGLMatrix.SetMatrixMode(OpenGLMatrix::Projection);
     float p[16]; // column-major
     openGLMatrix.GetMatrix(p);
     glUniformMatrix4fv(h_projectionMatrix, 1, GL_FALSE, p);
 
+    // Normal matrix
     GLint h_normalMatrix = glGetUniformLocation(program, "normalMatrix");
     float n[16];
     openGLMatrix.SetMatrixMode(OpenGLMatrix::ModelView);
-    openGLMatrix.GetNormalMatrix(n); // get normal matrix
+    openGLMatrix.GetNormalMatrix(n);
 
-    // upload n to the GPU
     GLboolean isRowMajor = GL_FALSE;
     glUniformMatrix4fv(h_normalMatrix, 1, isRowMajor, n);
 }
@@ -496,62 +434,27 @@ void displayFunc()
     
     // Render spline /////////////////////////////////////////////////////////
 
-    // Bind basic pipeline program
     pipelineProgram.Bind();
-    setPhongShading();
+    setPhongShading(); // upload to phong shader variables
     glBindVertexArray(vao); // bind the VAO
     glDrawArrays(GL_TRIANGLES, first, positions.size());
 
-    // Render texture map ////////////////////////////////////////////////////
+    // Render texture ////////////////////////////////////////////////////////
 
-    // select the active texture unit
+    // Bind texture
     setTextureUnit(GL_TEXTURE0);
-    // select the texture to use ("texHandle" was generated by glGenTextures)
     glBindTexture(GL_TEXTURE_2D, texHandle);
 
     // Bind texture pipeline program
     texPipelineProgram.Bind();
-    setModelViewProjectionMatrix();
+    setModelViewProjectionMatrix(); // upload to texture shader variables
     glBindVertexArray(texVao); // bind the VAO
     glDrawArrays(GL_TRIANGLES, first, pos.size());
 
     //////////////////////////////////////////////////////////////////////////
 
-    glBindVertexArray(0); // unbind the VAO
-    glutSwapBuffers(); // swap the buffers:
-}
-
-// Set current tangent, normal and B vectors at u
-void setTNB(float u, int sCtrlPoint)
-{
-    // 4 control points
-    Point p1, p2, p3, p4;
-
-    try
-    {
-        // Get 4 control points
-        p1 = splines[0].points[sCtrlPoint];
-        p2 = splines[0].points[sCtrlPoint+1];
-        p3 = splines[0].points[sCtrlPoint+2];
-        p4 = splines[0].points[sCtrlPoint+3];
-
-        // Set tangent
-        currentT = matCalc(2, u, 0.5f, p1, p2, p3, p4).unit();
-
-        // Set normal
-        if (u == 0.00f && sCtrlPoint == 0)
-        {
-            currentN = currentT.crossProd(Point(0.0f, -1.0f, 0.0f)).unit();
-        }
-        else
-        {
-            currentN = currentB.crossProd(currentT).unit(); // this currentB is previous B
-        }
-
-        // Set B vector
-        currentB = currentT.crossProd(currentN).unit();
-    }
-    catch (out_of_range& e) {}
+    glBindVertexArray(0); // Unbind the VAO
+    glutSwapBuffers();    // Swap the buffers:
 }
 
 bool skip = true;
@@ -595,9 +498,7 @@ void reshapeFunc(int w, int h)
     // setup perspective matrix
     openGLMatrix.SetMatrixMode(OpenGLMatrix::Projection);
     openGLMatrix.LoadIdentity();
-    //openGLMatrix.Perspective(45.0, 1.0 * w / h, 0.01, 5000.0);
     openGLMatrix.Perspective(45.0, 1.0 * w / h, 0.01, 100.0);
-    openGLMatrix.SetMatrixMode(OpenGLMatrix::ModelView);
 }
 
 void mouseMotionDragFunc(int x, int y)
@@ -717,12 +618,10 @@ void keyboardFunc(unsigned char key, int x, int y)
         break;
 
         case 'x':
-            // take a screenshot
             saveScreenshot(("screenshots/screenshot" + string(3 - to_string(frame).length(), '0') + to_string(frame) + ".jpg").c_str());
             frame++;
         break;
 
-        // use t key to translate object
         case 't':
             controlState = TRANSLATE;
         break;
@@ -733,7 +632,7 @@ void keyboardFunc(unsigned char key, int x, int y)
     mousePos[1] = y;
 }
 
-// initialize VBO
+// Initialize VBO
 void initVBO(int mode)
 {
     if (mode == 1)
@@ -742,7 +641,7 @@ void initVBO(int mode)
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * (positions.size() + normals.size()), nullptr, GL_STATIC_DRAW);
         // upload position data
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions.size(), static_cast<void*>(positions.data()));
-        // upload color data
+        // upload normal data
         glBufferSubData(GL_ARRAY_BUFFER, sizeof(float) * positions.size(), sizeof(float) * normals.size(), static_cast<void*>(normals.data()));
     }
     else
@@ -754,6 +653,82 @@ void initVBO(int mode)
         // upload uvs data
         glBufferSubData(GL_ARRAY_BUFFER, sizeof(float) * pos.size(), sizeof(float) * uvs.size(), static_cast<void*>(uvs.data()));
     }
+}
+
+/*
+ * Matrix multiplication for spline positions and tangent at u
+ * p(u) = [u^3 u^2 u 1] * M * C
+ * t(u) = [3u^2 2u 1 0] * M * C
+*/
+Point matCalc(int mode, float u, float s, Point p1, Point p2, Point p3, Point p4)
+{
+    Point result;
+    float temp[12];
+    float basis[16] = { -s,       2.0f - s, s - 2.0f,        s,
+                        2.0f * s, s - 3.0f, 3.0f - 2.0f * s, -s,
+                        -s,       0.0f,     s,               0.0f,
+                        0.0f,     1.0f,     0.0f,            0.0f };
+
+    float vec4U[4];
+    if (mode == 1) // Get a point with Catmull-Rom [u^3 u^2 u 1]
+    {
+        vec4U[0] = u * u * u; vec4U[1] = u * u; vec4U[2] = u; vec4U[3] = 1.0f;
+    }
+    else if (mode == 2) // Get a tangent [3u^2 2u 1 0]
+    {
+        vec4U[0] = 3 * u * u; vec4U[1] = 2 * u; vec4U[2] = 1.0f; vec4U[3] = 0.0f;
+    }
+
+    temp[0] = basis[0] * p1.x + basis[1] * p2.x + basis[2] * p3.x + basis[3] * p4.x;
+    temp[1] = basis[0] * p1.y + basis[1] * p2.y + basis[2] * p3.y + basis[3] * p4.y;
+    temp[2] = basis[0] * p1.z + basis[1] * p2.z + basis[2] * p3.z + basis[3] * p4.z;
+
+    temp[3] = basis[4] * p1.x + basis[5] * p2.x + basis[6] * p3.x + basis[7] * p4.x;
+    temp[4] = basis[4] * p1.y + basis[5] * p2.y + basis[6] * p3.y + basis[7] * p4.y;
+    temp[5] = basis[4] * p1.z + basis[5] * p2.z + basis[6] * p3.z + basis[7] * p4.z;
+
+    temp[6] = basis[8] * p1.x + basis[9] * p2.x + basis[10] * p3.x + basis[11] * p4.x;
+    temp[7] = basis[8] * p1.y + basis[9] * p2.y + basis[10] * p3.y + basis[11] * p4.y;
+    temp[8] = basis[8] * p1.z + basis[9] * p2.z + basis[10] * p3.z + basis[11] * p4.z;
+
+    temp[9]  = basis[12] * p1.x + basis[13] * p2.x + basis[14] * p3.x + basis[15] * p4.x;
+    temp[10] = basis[12] * p1.y + basis[13] * p2.y + basis[14] * p3.y + basis[15] * p4.y;
+    temp[11] = basis[12] * p1.z + basis[13] * p2.z + basis[14] * p3.z + basis[15] * p4.z;
+
+    result.x = vec4U[0] * temp[0] + vec4U[1] * temp[3] + vec4U[2] * temp[6] + vec4U[3] * temp[9];
+    result.y = vec4U[0] * temp[1] + vec4U[1] * temp[4] + vec4U[2] * temp[7] + vec4U[3] * temp[10];
+    result.z = vec4U[0] * temp[2] + vec4U[1] * temp[5] + vec4U[2] * temp[8] + vec4U[3] * temp[11];
+
+    return result;
+}
+
+// Set current tangent, normal and B vectors at u
+void setTNB(float u, int sCtrlPoint)
+{
+    // 4 control points
+    Point p1, p2, p3, p4;
+
+    try
+    {
+        // Get 4 control points
+        p1 = splines[0].points[sCtrlPoint];
+        p2 = splines[0].points[sCtrlPoint+1];
+        p3 = splines[0].points[sCtrlPoint+2];
+        p4 = splines[0].points[sCtrlPoint+3];
+
+        // Set tangent
+        currentT = matCalc(2, u, 0.5f, p1, p2, p3, p4).unit();
+
+        // Set normal
+        if (u == 0.00f && sCtrlPoint == 0)
+            currentN = currentT.crossProd(Point(0.0f, -1.0f, 0.0f)).unit();
+        else
+            currentN = currentB.crossProd(currentT).unit(); // this currentB is previous B
+
+        // Set B vector
+        currentB = currentT.crossProd(currentN).unit();
+    }
+    catch (out_of_range& e) {}
 }
 
 /*
@@ -893,48 +868,45 @@ void addTriangles(float u, int sCtrlPoint)
     addPoints(v13_2, v12_2, v14_2, currentT);       addPoints(v15_2, v12_2, v14_2, currentT);
 }
 
-// read spline data and fill positions and normals
+/*
+ * Setup vertex data
+ */
 void getData()
 {
-    // Create geometry
-    //for (i = 0; i < numSplines; i++)
-    //{
+    // Roller coaster mesh /////////////////////////////////////////////////////////////
     for (int sCtrlPoint = 0; sCtrlPoint < splines[0].numControlPoints - 3; sCtrlPoint++)
     {
-        for (float u = 0.0f; u < 1.0f; u += 0.01f)
+        for (float u = 0.0f; u <= 1.0f; u += 0.01f)
             addTriangles(u, sCtrlPoint);
     }
-    //}
 
-    // Ground plane
+    // Ground plane ////////////////////////////////////////////////////////////////////
     float size = 100.0f;
     float height = 20.0f;
 
-    // ground positions
-    pos.push_back(size); pos.push_back(-size); pos.push_back(height);
-    pos.push_back(size); pos.push_back(size); pos.push_back(height);
-    pos.push_back(-size); pos.push_back(size); pos.push_back(height);
+    // positions
+    pos.push_back(size);  pos.push_back(-size); pos.push_back(height);
+    pos.push_back(size);  pos.push_back(size);  pos.push_back(height);
+    pos.push_back(-size); pos.push_back(size);  pos.push_back(height);
 
-    pos.push_back(-size); pos.push_back(size); pos.push_back(height);
+    pos.push_back(-size); pos.push_back(size);  pos.push_back(height);
     pos.push_back(-size); pos.push_back(-size); pos.push_back(height);
-    pos.push_back(size); pos.push_back(-size); pos.push_back(height);
+    pos.push_back(size);  pos.push_back(-size); pos.push_back(height);
 
     // UVs
     float scale = 40.0f;
     uvs.push_back(scale); uvs.push_back(scale);
     uvs.push_back(scale); uvs.push_back(0.0f);
-    uvs.push_back(0.0f); uvs.push_back(0.0f);
+    uvs.push_back(0.0f);  uvs.push_back(0.0f);
 
-    uvs.push_back(0.0f); uvs.push_back(0.0f);
-    uvs.push_back(0.0f); uvs.push_back(scale);
+    uvs.push_back(0.0f);  uvs.push_back(0.0f);
+    uvs.push_back(0.0f);  uvs.push_back(scale);
     uvs.push_back(scale); uvs.push_back(scale);
 }
 
 void loadSplineData(int argc, char *argv[])
 {
-    // load the splines from the provided filename
     loadSplines(argv[1]);
-
     printf("Loaded %d spline(s).\n", numSplines);
     for(int i=0; i<numSplines; i++)
         printf("Num control points in spline %d: %d.\n", i, splines[i].numControlPoints);
@@ -943,71 +915,58 @@ void loadSplineData(int argc, char *argv[])
 void initScene(int argc, char *argv[])
 {
     glClearColor(0.56f, 0.871f, 1.0f, 0.0f);
-
-    // enable hidden surface removal:
     glEnable(GL_DEPTH_TEST);
 
+    // Setup data
     loadSplineData(argc, argv);
-
-    // read file and fill positions and normals
     getData();
 
-    // Basic Shader /////////////////////////////////////////////////////////////////////
+    // Basic Shader ////////////////////////////////////////////////////////////////////////////
 
     bool isBasicShader = true;
     pipelineProgram.Init("../openGLHelper-starterCode", isBasicShader);
-    // bind the pipeline program (run this before glUniformMatrix4fv)
-    pipelineProgram.Bind(); // need this to render spline
+    pipelineProgram.Bind(); // Use basic shader
 
-    // Create handles for modelview and projection matrices
     program = pipelineProgram.GetProgramHandle();
     h_modelViewMatrix = glGetUniformLocation(program, "modelViewMatrix");
     h_projectionMatrix = glGetUniformLocation(program, "projectionMatrix");
 
-    // set up vbo and vao for Splines
-
-    // create VBO
+    // Create VBO
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    initVBO(1);
 
-    // create VAO
+    // Create VAO
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao); // bind the VAO
-
-    initVBO(1); // create VBO
 
     GLboolean normalized = GL_FALSE;
     GLsizei stride = 0;
 
-    // bind the VBO "buffer" (must be previously created)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // get location index of the "position" shader variable
-    GLuint loc = glGetAttribLocation(program, "position");
+    // Connect data to "position"
+    GLuint loc = glGetAttribLocation(program, "position"); // Get location index of "position"
     glEnableVertexAttribArray(loc); // enable the "position" attribute
     const void * offset = (const void*) 0;
-    // set the layout of the "position" attribute data
     glVertexAttribPointer(loc, 3, GL_FLOAT, normalized, stride, offset);
 
-    // get the location index of the "color" shader variable
-    loc = glGetAttribLocation(program, "normal");
-    glEnableVertexAttribArray(loc); // enable the "color" attribute
+    // Connect data to "normal"
+    loc = glGetAttribLocation(program, "normal"); // Get location index of "normal"
+    glEnableVertexAttribArray(loc); // enable the "normal" attribute
     offset = (const void*) (sizeof(float) * positions.size());
-    // set the layout of the "color" attribute data
     glVertexAttribPointer(loc, 3, GL_FLOAT, normalized, stride, offset);
 
-    // Texture Mapping Shader //////////////////////////////////////////////////////////////////////////
+    // Texture Shader //////////////////////////////////////////////////////////////////////////
 
     isBasicShader = false;
     texPipelineProgram.Init("../openGLHelper-starterCode", isBasicShader);
-    texPipelineProgram.Bind(); // need to disable to render spline (why????)
+    texPipelineProgram.Bind(); // Use texture shader
     
     texProgram = texPipelineProgram.GetProgramHandle();
     tex_h_modelViewMatrix = glGetUniformLocation(texProgram, "modelViewMatrix");
     tex_h_projectionMatrix = glGetUniformLocation(texProgram, "projectionMatrix");
 
-    // create an integer handle for the texture
+    // Load texture image into texHandle
     glGenTextures(1, &texHandle);
-
     int code = initTexture("./ground_img/lawn.jpg", texHandle);
     if (code != 0)
     {
@@ -1015,30 +974,24 @@ void initScene(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // create VBO
+    // Create VBO
     glGenBuffers(1, &texVbo);
     glBindBuffer(GL_ARRAY_BUFFER, texVbo);
+    initVBO(2);
 
-    // create VAO
+    // Create VAO
     glGenVertexArrays(1, &texVao);
     glBindVertexArray(texVao); // bind the VAO
 
-    // read file and fill pos and uvs
-    initVBO(2); // create VBO    
-
-    glBindBuffer(GL_ARRAY_BUFFER, texVbo);
-
-    // get location index of the "pos" shader variable
-    loc = glGetAttribLocation(texProgram, "pos");
+    // Connect data to "pos"
+    loc = glGetAttribLocation(texProgram, "pos"); // Get location index of "pos"
     glEnableVertexAttribArray(loc); // enable the "pos" attribute
-    // set the layout of the "pos" attribute data
     offset = (const void*) 0;
     glVertexAttribPointer(loc, 3, GL_FLOAT, normalized, stride, offset);
 
-    // get location index of the "texCoord" shader variable
-    loc = glGetAttribLocation(texProgram, "texCoord");
+    // Connect data to "texCoord"
+    loc = glGetAttribLocation(texProgram, "texCoord"); // Get location index of "texCoord"
     glEnableVertexAttribArray(loc); // enable the "texCoord" attribute
-    // set the layout of the "texCoord" attribute data
     offset = (const void*) (sizeof(float) * pos.size());
     glVertexAttribPointer(loc, 2, GL_FLOAT, normalized, stride, offset);
 
